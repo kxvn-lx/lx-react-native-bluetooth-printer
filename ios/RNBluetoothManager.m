@@ -105,6 +105,21 @@ static NSTimer *timer;
 RCT_EXPORT_MODULE(BluetoothManager);
 
 
+//GetConnectedDevice
+RCT_EXPORT_METHOD(getConnectedDevice:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    if (connected) {
+        NSDictionary *deviceInfo = @{
+            @"name": connected.name ? connected.name : @"",
+            @"address": connected.identifier.UUIDString
+        };
+        resolve(deviceInfo);
+    } else {
+        resolve(nil);
+    }
+}
+
 //isBluetoothEnabled
 RCT_EXPORT_METHOD(isBluetoothEnabled:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
@@ -212,7 +227,27 @@ RCT_EXPORT_METHOD(connect:(NSString *)address
         //centralManager:didDiscoverPeripheral:advertisementData:RSSI:
     }
 }
+
 //unpair(address)
+RCT_EXPORT_METHOD(unpair:(NSString *)address
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    CBPeripheral *peripheral = [self.foundDevices objectForKey:address];
+    
+    if (peripheral) {
+        if (connected && [connected.identifier.UUIDString isEqualToString:address]) {
+            [self.centralManager cancelPeripheralConnection:peripheral];
+            connected = nil;
+        }
+        
+        [self.foundDevices removeObjectForKey:address];
+        
+        resolve(@YES);
+    } else {
+        reject(@"DEVICE_NOT_FOUND", @"Device not found", nil);
+    }
+}
 
 
 -(void)callStop{
