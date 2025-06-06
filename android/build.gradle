@@ -1,30 +1,23 @@
 buildscript {
     repositories {
-        jcenter { url "https://jcenter.bintray.com/" }
-        maven {url "https://repo.spring.io/plugins-release/"}
+        google()
         mavenCentral()
-        maven {
-            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-            url "$rootDir/../node_modules/react-native/android"
-        }
-        maven {
-            url 'https://maven.google.com'
-        }
     }
-
-    dependencies { 
-        classpath 'com.android.tools.build:gradle:3.5.3'
+    dependencies {
+        // Update to a modern Android Gradle Plugin version compatible with Gradle 8.10.2
+        classpath 'com.android.tools.build:gradle:8.6.0'
     }
 }
 
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion 34
+    namespace 'com.lx.reactnative.bluetoothprinter' // Add a namespace (required for newer AGP versions)
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 24
+        targetSdkVersion 34 
         versionCode 1
         versionName "1.0"
     }
@@ -40,21 +33,18 @@ android {
 
 repositories {
     google()
-    jcenter { url "https://jcenter.bintray.com/" }
-    maven {url "https://repo.spring.io/plugins-release/"}
     mavenCentral()
     maven {
-        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+        // React Native from npm
         url "$rootDir/../node_modules/react-native/android"
-    }
-    maven {
-        url 'https://maven.google.com'
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.facebook.react:react-native:+'  // From node_modules 
-    implementation group: 'com.android.support', name: 'support-v4', version: '27.0.0'
-    implementation "com.google.zxing:core:3.3.0"
+    // Specify the exact React Native version to avoid issues with '+'
+    implementation 'com.facebook.react:react-native:0.76.1' 
+    // Replace support library with AndroidX
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'com.google.zxing:core:3.5.3' 
 }
