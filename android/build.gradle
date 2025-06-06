@@ -21,9 +21,16 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    
     lintOptions {
         abortOnError false
     }
+    
     sourceSets {
         main {
             aidl.srcDirs = ['src/main/java']
@@ -42,8 +49,8 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    // Specify the exact React Native version to avoid issues with '+'
-    implementation 'com.facebook.react:react-native:0.76.1' 
+    // Use provided dependency to avoid version conflicts
+    compileOnly 'com.facebook.react:react-native:+'
     // Replace support library with AndroidX
     implementation 'androidx.core:core:1.13.1'
     implementation 'com.google.zxing:core:3.5.3' 

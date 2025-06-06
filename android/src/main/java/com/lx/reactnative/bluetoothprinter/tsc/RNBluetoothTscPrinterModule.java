@@ -1,10 +1,10 @@
-package cn.jystudio.bluetooth.tsc;
+package com.lx.reactnative.bluetoothprinter.tsc;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Base64;
-import cn.jystudio.bluetooth.BluetoothService;
-import cn.jystudio.bluetooth.BluetoothServiceStateObserver;
+import com.lx.reactnative.bluetoothprinter.BluetoothService;
+import com.lx.reactnative.bluetoothprinter.BluetoothServiceStateObserver;
 import com.facebook.react.bridge.*;
 
 import java.util.Map;

@@ -1,4 +1,4 @@
-package cn.jystudio.bluetooth.escpos.command.sdk;
+package com.lx.reactnative.bluetoothprinter.escpos.command.sdk;
 
 import android.graphics.*;
 

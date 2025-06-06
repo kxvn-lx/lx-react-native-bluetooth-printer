@@ -1,5 +1,5 @@
 
-package cn.jystudio.bluetooth;
+package com.lx.reactnative.bluetoothprinter;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;

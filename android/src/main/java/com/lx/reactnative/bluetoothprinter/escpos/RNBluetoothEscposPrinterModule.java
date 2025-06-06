@@ -1,15 +1,15 @@
 
-package cn.jystudio.bluetooth.escpos;
+package com.lx.reactnative.bluetoothprinter.escpos;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Base64;
 import android.util.Log;
-import cn.jystudio.bluetooth.BluetoothService;
-import cn.jystudio.bluetooth.BluetoothServiceStateObserver;
-import cn.jystudio.bluetooth.escpos.command.sdk.Command;
-import cn.jystudio.bluetooth.escpos.command.sdk.PrintPicture;
-import cn.jystudio.bluetooth.escpos.command.sdk.PrinterCommand;
+import com.lx.reactnative.bluetoothprinter.BluetoothService;
+import com.lx.reactnative.bluetoothprinter.BluetoothServiceStateObserver;
+import com.lx.reactnative.bluetoothprinter.escpos.command.sdk.Command;
+import com.lx.reactnative.bluetoothprinter.escpos.command.sdk.PrintPicture;
+import com.lx.reactnative.bluetoothprinter.escpos.command.sdk.PrinterCommand;
 import com.facebook.react.bridge.*;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
