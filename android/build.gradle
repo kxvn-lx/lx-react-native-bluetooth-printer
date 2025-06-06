@@ -13,7 +13,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 34
-    namespace 'com.lx.reactnative.bluetoothprinter' // Add a namespace (required for newer AGP versions)
+    namespace 'com.lx.reactnative.bluetoothprinter' 
 
     defaultConfig {
         minSdkVersion 21
