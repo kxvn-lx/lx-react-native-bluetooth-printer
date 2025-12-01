@@ -346,6 +346,15 @@ public class PrinterCommand {
 
     }
 
+    /**
+     * Cut paper at one point
+     *
+     * @return
+     */
+    public static byte[] POS_Cut_One_Point() {
+        return Command.GS_i;
+    }
+
 //***********************************以下函数为公开函数***********************************************************//
 
     /**

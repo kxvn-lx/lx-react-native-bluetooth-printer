@@ -249,6 +249,39 @@ RCT_EXPORT_METHOD(unpair:(NSString *)address
     }
 }
 
+//disconnect(address)
+RCT_EXPORT_METHOD(disconnect:(NSString *)address
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    if (connected) {
+        [self.centralManager cancelPeripheralConnection:connected];
+        connected = nil;
+        resolve(address);
+    } else {
+        resolve(address);
+    }
+}
+
+//isDeviceConnected
+RCT_EXPORT_METHOD(isDeviceConnected:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    BOOL isConnected = (connected != nil && connected.state == CBPeripheralStateConnected);
+    resolve(@(isConnected));
+}
+
+//getConnectedDeviceAddress
+RCT_EXPORT_METHOD(getConnectedDeviceAddress:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    if (connected) {
+        resolve(connected.identifier.UUIDString);
+    } else {
+        resolve(nil);
+    }
+}
+
 
 -(void)callStop{
     if(self.centralManager.isScanning){

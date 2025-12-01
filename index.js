@@ -145,6 +145,11 @@ const MODE = {
   ENABLE: 1,
 };
 
+const PAGE_WIDTH = {
+  WIDTH_58: 384,
+  WIDTH_80: 576,
+};
+
 module.exports = {
   BluetoothManager,
   BluetoothEscposPrinter,
@@ -166,4 +171,5 @@ module.exports = {
   ROTATION,
   ALIGN,
   MODE,
+  PAGE_WIDTH,
 };

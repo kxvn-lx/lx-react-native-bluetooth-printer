@@ -58,6 +58,7 @@ public class BluetoothService {
     public static String ErrorMessage = "No_Error_Message";
 
     private static List<BluetoothServiceStateObserver> observers = new ArrayList<BluetoothServiceStateObserver>();
+    private String mLastConnectedDeviceAddress = "";
 
     /**
      * Constructor. Prepares a new BTPrinter session.
@@ -290,6 +291,9 @@ public class BluetoothService {
             Log.i(TAG, "Connected");
             int bytes;
 
+            // Keep the address of last connected device
+            mLastConnectedDeviceAddress = mmDevice.getAddress();
+
             // Keep listening to the InputStream while connected
             while (true) {
                 try {
@@ -354,5 +358,21 @@ public class BluetoothService {
                 Log.e(TAG, "close() of connect socket failed", e);
             }
         }
+    }
+
+    /**
+     * Method to get the address of the last connected device
+     * @return The MAC address of the last connected device
+     */
+    public String getLastConnectedDeviceAddress() {
+        return mLastConnectedDeviceAddress;
+    }
+
+    /**
+     * Set the last connected device address
+     * @param address The MAC address to store
+     */
+    public void setLastConnectedDeviceAddress(String address) {
+        this.mLastConnectedDeviceAddress = address;
     }
 }

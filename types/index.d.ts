@@ -195,11 +195,15 @@ declare module "lx-react-native-bluetooth-printer" {
     static scanDevices():
       | ScannedBluetoothDevices
       | PromiseLike<ScannedBluetoothDevices>;
+    static stopScan(): void | PromiseLike<void>;
     static connect(address: string): void | PromiseLike<void>;
+    static disconnect(address: string): void | PromiseLike<void>;
     static getConnectedDevice():
       | BluetoothDevice[]
       | PromiseLike<BluetoothDevice[]>;
     static unpair(address: string): string | PromiseLike<string>;
+    static isDeviceConnected(): boolean | PromiseLike<boolean>;
+    static getConnectedDeviceAddress(): string | null | PromiseLike<string | null>;
   }
 
   export class BluetoothEscposPrinter {
@@ -264,6 +268,10 @@ declare module "lx-react-native-bluetooth-printer" {
       fontType: number | typeof FONTTYPE,
       fontPosition: number
     ): void | string | PromiseLike<void> | PromiseLike<string>;
+    static openDrawer(
+      time: number
+    ): void | string | PromiseLike<void> | PromiseLike<string>;
+    static cutOnePoint(): void | string | PromiseLike<void> | PromiseLike<string>;
   }
 
   export class BluetoothTscPrinter {

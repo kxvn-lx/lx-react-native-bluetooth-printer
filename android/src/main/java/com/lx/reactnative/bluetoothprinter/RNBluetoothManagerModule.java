@@ -258,7 +258,63 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
         } else {
             promise.reject("BT NOT ENABLED");
         }
+    }
 
+    @ReactMethod
+    public void disconnect(String address, final Promise promise){
+        BluetoothAdapter adapter = this.getBluetoothAdapter();
+        if (adapter != null && adapter.isEnabled()) {
+            try {
+                mService.stop();
+                promise.resolve(address);
+            } catch (Exception e) {
+                Log.e(TAG, "Error disconnecting: " + e.getMessage());
+                promise.reject("DISCONNECT_ERROR", e.getMessage());
+            }
+        } else {
+            promise.reject("BT_NOT_ENABLED", "Bluetooth is not enabled");
+        }
+    }
+
+    @ReactMethod
+    public void isDeviceConnected(final Promise promise) {
+        try {
+            boolean isConnected = false;
+            if (mService != null) {
+                int state = mService.getState();
+                isConnected = (state == BluetoothService.STATE_CONNECTED);
+            }
+            promise.resolve(isConnected);
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking connection: " + e.getMessage());
+            promise.reject("CONNECTION_CHECK_ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getConnectedDeviceAddress(final Promise promise) {
+        try {
+            // On Android 12+ (API 31+), BLUETOOTH_CONNECT permission is required
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                int bluetoothConnectPermission = ContextCompat.checkSelfPermission(reactContext, android.Manifest.permission.BLUETOOTH_CONNECT);
+                if (bluetoothConnectPermission != PackageManager.PERMISSION_GRANTED) {
+                    promise.reject("PERMISSION_DENIED", "BLUETOOTH_CONNECT permission is required on Android 12+");
+                    return;
+                }
+            }
+            
+            BluetoothDevice device = mService.getConnectedDevice();
+            if (device != null) {
+                promise.resolve(device.getAddress());
+            } else {
+                // Fallback to last connected address if available
+                String lastAddress = mService.getLastConnectedDeviceAddress();
+                promise.resolve(lastAddress);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting connected device address: " + e.getMessage());
+            promise.reject("GET_ADDRESS_ERROR", e.getMessage());
+        }
     }
 
     private void unpairDevice(BluetoothDevice device) {
