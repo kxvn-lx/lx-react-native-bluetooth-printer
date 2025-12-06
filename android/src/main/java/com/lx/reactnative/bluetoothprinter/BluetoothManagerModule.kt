@@ -136,7 +136,9 @@ class BluetoothManagerModule(
     if (!btAdapter.isEnabled) {
       val enableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
       promiseMap[PROMISE_ENABLE_BT] = promise
-      currentActivity?.startActivityForResult(enableIntent, REQUEST_ENABLE_BT)
+      val activity = reactApplicationContext.currentActivity
+        ?: return promise.reject("NO_ACTIVITY", "Current activity is null")
+      activity.startActivityForResult(enableIntent, REQUEST_ENABLE_BT)
       return
     }
 
@@ -161,11 +163,8 @@ class BluetoothManagerModule(
   @ReactMethod
   fun scanDevices(promise: Promise) {
     val btAdapter = ensureAdapterOrReject(promise) ?: return
-    val activity = currentActivity
-    if (activity == null) {
-      promise.reject("NO_ACTIVITY", "Current activity is null")
-      return
-    }
+    val activity = reactApplicationContext.currentActivity
+      ?: return promise.reject("NO_ACTIVITY", "Current activity is null")
 
     if (!ensureScanPermissions(activity, promise)) return
 
