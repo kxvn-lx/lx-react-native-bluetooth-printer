@@ -4,45 +4,36 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.6.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25")
+        // Update to a modern Android Gradle Plugin version compatible with Gradle 8.10.2
+        classpath 'com.android.tools.build:gradle:8.6.0'
     }
 }
 
-apply plugin: "com.android.library"
-apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: 'com.android.library'
 
 android {
-    namespace "com.lx.reactnative.bluetoothprinter"
-    compileSdkVersion 35
+    compileSdkVersion 34
+    namespace 'com.lx.reactnative.bluetoothprinter' 
 
     defaultConfig {
-        minSdkVersion 23
-        targetSdkVersion 35
+        minSdkVersion 21
+        targetSdkVersion 34 
         versionCode 1
         versionName "1.0"
     }
-
+    
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += [
-                "-Xjvm-default=all",
-                "-opt-in=kotlin.RequiresOptIn",
-        ]
-    }
-
+    
     lintOptions {
         abortOnError false
     }
-
+    
     sourceSets {
         main {
-            aidl.srcDirs = ["src/main/java"]
+            aidl.srcDirs = ['src/main/java']
         }
     }
 }
@@ -52,14 +43,15 @@ repositories {
     mavenCentral()
     maven {
         // React Native from npm
-        url("$rootDir/../node_modules/react-native/android")
+        url "$rootDir/../node_modules/react-native/android"
     }
 }
 
 dependencies {
-    implementation(fileTree(dir: "libs", include: ["*.jar"]))
-    compileOnly("com.facebook.react:react-native:+")
-    implementation("androidx.core:core:1.13.1")
-    implementation("com.google.zxing:core:3.5.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // Use provided dependency to avoid version conflicts
+    compileOnly 'com.facebook.react:react-native:+'
+    // Replace support library with AndroidX
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'com.google.zxing:core:3.5.3' 
 }
