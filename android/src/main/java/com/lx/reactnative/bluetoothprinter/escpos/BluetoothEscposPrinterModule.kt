@@ -108,11 +108,11 @@ class BluetoothEscposPrinterModule(
   @ReactMethod
   fun printText(text: String, options: ReadableMap?, promise: Promise) {
     try {
-      val encoding = options?.getString("encoding") ?: "GBK"
-      val codepage = options?.getInt("codepage") ?: 0
-      val widthTimes = options?.getInt("widthtimes") ?: 0
-      val heightTimes = options?.getInt("heigthtimes") ?: 0
-      val fonttype = options?.getInt("fonttype") ?: 0
+      val encoding: String = options?.getString("encoding") ?: "GBK"
+      val codepage: Int = options?.getInt("codepage") ?: 0
+      val widthTimes: Int = options?.getInt("widthtimes") ?: 0
+      val heightTimes: Int = options?.getInt("heigthtimes") ?: 0
+      val fonttype: Int = options?.getInt("fonttype") ?: 0
 
       val bytes = PrinterCommand.POS_Print_Text(
         text,
@@ -128,7 +128,7 @@ class BluetoothEscposPrinterModule(
         promise.reject("COMMAND_NOT_SEND")
       }
     } catch (e: Exception) {
-      promise.reject(e.message, e)
+      promise.reject("PRINT_TEXT_ERROR", e.message ?: "Unknown error", e)
     }
   }
 
@@ -151,11 +151,11 @@ class BluetoothEscposPrinterModule(
       return
     }
 
-    var encoding = "GBK"
-    var codepage = 0
-    var widthTimes = 0
-    var heightTimes = 0
-    var fonttype = 0
+    var encoding: String = "GBK"
+    var codepage: Int = 0
+    var widthTimes: Int = 0
+    var heightTimes: Int = 0
+    var fonttype: Int = 0
     if (options != null) {
       encoding = options.getString("encoding") ?: "GBK"
       codepage = options.getInt("codepage")
@@ -313,7 +313,7 @@ class BluetoothEscposPrinterModule(
       val hints: Hashtable<EncodeHintType, Any> = Hashtable()
       hints[EncodeHintType.CHARACTER_SET] = "utf-8"
       hints[EncodeHintType.ERROR_CORRECTION] = ErrorCorrectionLevel.forBits(correctionLevel)
-      val bitMatrix: BitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
+      val bitMatrix: BitMatrix = QRCodeWriter().encode(content.orEmpty(), BarcodeFormat.QR_CODE, size, size, hints)
       var width = bitMatrix.width
       if (width > deviceWidth || width == 0) width = deviceWidth
       val height = bitMatrix.height
@@ -332,7 +332,7 @@ class BluetoothEscposPrinterModule(
         promise.reject("COMMAND_NOT_SEND")
       }
     } catch (e: Exception) {
-      promise.reject(e.message, e)
+      promise.reject("PRINT_QR_ERROR", e.message ?: "Unknown error", e)
     }
   }
 

@@ -52,6 +52,43 @@ class BluetoothManagerModule(
   private var pairedDevices = Arguments.createArray()
   private var foundDevices = Arguments.createArray()
 
+  private val discoverReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+      when (intent.action) {
+        BluetoothDevice.ACTION_FOUND -> {
+          val device: BluetoothDevice? =
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+          if (device != null && device.bondState != BluetoothDevice.BOND_BONDED) {
+            if (!deviceAlreadyFound(device.address)) {
+              val map = Arguments.createMap()
+              map.putString("name", safeDeviceName(device))
+              map.putString("address", device.address)
+              foundDevices.pushMap(map)
+              Arguments.createMap().apply {
+                putMap("device", map)
+                emitEvent(EVENT_DEVICE_FOUND, this)
+              }
+            }
+          }
+        }
+
+        BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+          promiseMap.remove(PROMISE_SCAN)?.let { promise ->
+            val result = Arguments.createMap()
+            result.putArray("paired", pairedDevices)
+            result.putArray("found", foundDevices)
+            promise.resolve(result)
+          }
+          val params = Arguments.createMap().apply {
+            putArray("paired", pairedDevices)
+            putArray("found", foundDevices)
+          }
+          emitEvent(EVENT_DEVICE_DISCOVER_DONE, params)
+        }
+      }
+    }
+  }
+
   init {
     reactContext.addActivityEventListener(this)
     service.addStateObserver(this)
@@ -138,7 +175,7 @@ class BluetoothManagerModule(
     foundDevices = Arguments.createArray()
     btAdapter.bondedDevices.forEach { device ->
       val map = Arguments.createMap()
-      map.putString("name", device.name)
+      map.putString("name", safeDeviceName(device))
       map.putString("address", device.address)
       pairedDevices.pushMap(map)
     }
@@ -173,7 +210,7 @@ class BluetoothManagerModule(
     val device = service.getConnectedDevice()
     if (device != null) {
       val map = Arguments.createMap().apply {
-        putString("name", device.name ?: "")
+        putString("name", safeDeviceName(device))
         putString("address", device.address)
       }
       promise.resolve(map)
@@ -241,7 +278,7 @@ class BluetoothManagerModule(
     Arguments.createArray().apply {
       btAdapter.bondedDevices.forEach { device ->
         val map = Arguments.createMap()
-        map.putString("name", device.name)
+        map.putString("name", safeDeviceName(device))
         map.putString("address", device.address)
         pushMap(map)
       }
@@ -301,43 +338,6 @@ class BluetoothManagerModule(
     }
   }
 
-  private val discoverReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-      when (intent.action) {
-        BluetoothDevice.ACTION_FOUND -> {
-          val device: BluetoothDevice? =
-            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-          if (device != null && device.bondState != BluetoothDevice.BOND_BONDED) {
-            if (!deviceAlreadyFound(device.address)) {
-              val map = Arguments.createMap()
-              map.putString("name", device.name)
-              map.putString("address", device.address)
-              foundDevices.pushMap(map)
-              Arguments.createMap().apply {
-                putMap("device", map)
-                emitEvent(EVENT_DEVICE_FOUND, this)
-              }
-            }
-          }
-        }
-
-        BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-          promiseMap.remove(PROMISE_SCAN)?.let { promise ->
-            val result = Arguments.createMap()
-            result.putArray("paired", pairedDevices)
-            result.putArray("found", foundDevices)
-            promise.resolve(result)
-          }
-          val params = Arguments.createMap().apply {
-            putArray("paired", pairedDevices)
-            putArray("found", foundDevices)
-          }
-          emitEvent(EVENT_DEVICE_DISCOVER_DONE, params)
-        }
-      }
-    }
-  }
-
   private fun deviceAlreadyFound(address: String): Boolean {
     for (i in 0 until foundDevices.size()) {
       val existing = foundDevices.getMap(i)
@@ -346,13 +346,21 @@ class BluetoothManagerModule(
     return false
   }
 
+  private fun safeDeviceName(device: BluetoothDevice?): String {
+    return try {
+      device?.name ?: ""
+    } catch (e: SecurityException) {
+      ""
+    }
+  }
+
   private fun emitEvent(event: String, params: WritableMap?) {
     reactApplicationContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit(event, params)
   }
 
-  override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {
+  override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
     if (requestCode == REQUEST_ENABLE_BT) {
       val promise = promiseMap.remove(PROMISE_ENABLE_BT)
       if (resultCode == Activity.RESULT_OK && promise != null) {
@@ -364,7 +372,7 @@ class BluetoothManagerModule(
     }
   }
 
-  override fun onNewIntent(intent: Intent?) = Unit
+  override fun onNewIntent(intent: Intent) = Unit
 
   override fun onBluetoothServiceStateChanged(state: Int, bundle: Map<String, Any?>?) {
     when (state) {

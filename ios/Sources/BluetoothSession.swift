@@ -77,14 +77,18 @@ final class BluetoothSession: NSObject, CBCentralManagerDelegate, CBPeripheralDe
   }
 
   func write(_ data: Data, completion: @escaping (Bool) -> Void) {
-    guard let peripheral = connected, let characteristic = writeCharacteristic else {
-      pendingWriteQueue.append(data)
-      pendingWriteCompletion = completion
-      connected?.discoverServices([serviceUUID])
+    guard let peripheral = connected else {
+      completion(false)
       return
     }
-    peripheral.writeValue(data, for: characteristic, type: .withoutResponse)
-    completion(true) // BLE printers rarely respond; assume success on dispatch.
+    if let characteristic = writeCharacteristic {
+      peripheral.writeValue(data, for: characteristic, type: .withoutResponse)
+      completion(true)
+    } else {
+      pendingWriteQueue.append(data)
+      pendingWriteCompletion = completion
+      peripheral.discoverServices([serviceUUID])
+    }
   }
 
   // MARK: - CBCentralManagerDelegate
@@ -142,11 +146,13 @@ final class BluetoothSession: NSObject, CBCentralManagerDelegate, CBPeripheralDe
 
   private func flushPendingWrites() {
     guard let characteristic = writeCharacteristic, let peripheral = connected else { return }
+    let completion = pendingWriteCompletion
+    pendingWriteCompletion = nil
     while let chunk = pendingWriteQueue.first {
       pendingWriteQueue.removeFirst()
       peripheral.writeValue(chunk, for: characteristic, type: .withoutResponse)
-      pendingWriteCompletion?(true)
     }
+    completion?(true)
   }
 }
 

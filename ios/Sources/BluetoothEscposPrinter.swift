@@ -208,7 +208,12 @@ final class BluetoothEscposPrinter: NSObject, RCTBridgeModule {
   private func sendSync(_ data: Data) -> Bool {
     guard session.isConnected else { return false }
     var completed = false
-    session.write(data) { success in completed = success }
+    let semaphore = DispatchSemaphore(value: 0)
+    session.write(data) { success in
+      completed = success
+      semaphore.signal()
+    }
+    _ = semaphore.wait(timeout: .now() + 2.0)
     return completed
   }
 }

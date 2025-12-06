@@ -211,9 +211,8 @@ class BluetoothService {
         socket?.close()
       } catch (e: IOException) {
         Log.e(TAG, "close failed", e)
-      } finally {
-        connectionLost()
       }
+      // Don't call connectionLost() here as it's already handled by readLoop
     }
   }
 }

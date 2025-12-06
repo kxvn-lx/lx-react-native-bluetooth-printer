@@ -164,7 +164,7 @@ final class BluetoothManager: RCTEventEmitter, BluetoothSessionDelegate {
       connectResolve = nil
       connectReject = nil
     }
-    if hasListeners {
+    if hasListenersFlag {
       sendEvent(
         withName: "EVENT_CONNECTED",
         body: ["device": ["name": peripheral.name ?? "", "address": peripheral.identifier.uuidString]]
