@@ -47,7 +47,7 @@ class BluetoothManagerModule(
     private const val PROMISE_CONNECT = "CONNECT"
   }
 
-  private val adapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+  private val adapter: BluetoothAdapter? = bluetoothAdapter(reactContext)
   private val promiseMap = ConcurrentHashMap<String, Promise>()
   private var pairedDevices = Arguments.createArray()
   private var foundDevices = Arguments.createArray()
@@ -56,8 +56,12 @@ class BluetoothManagerModule(
     override fun onReceive(context: Context, intent: Intent) {
       when (intent.action) {
         BluetoothDevice.ACTION_FOUND -> {
-          val device: BluetoothDevice? =
+          val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+          } else {
+            @Suppress("DEPRECATION")
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+          }
           if (device != null && device.bondState != BluetoothDevice.BOND_BONDED) {
             if (!deviceAlreadyFound(device.address)) {
               val map = Arguments.createMap()
@@ -96,9 +100,10 @@ class BluetoothManagerModule(
     val filter = IntentFilter(BluetoothDevice.ACTION_FOUND).apply {
       addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
     }
-    reactContext.registerReceiver(discoverReceiver, filter)
+    registerReceiverCompat(reactContext, discoverReceiver, filter)
   }
 
+  @Deprecated("React Native bridge cleanup hook")
   override fun onCatalystInstanceDestroy() {
     try {
       reactApplicationContext.unregisterReceiver(discoverReceiver)
@@ -152,7 +157,9 @@ class BluetoothManagerModule(
       return
     }
     service.stop()
-    promise.resolve(!btAdapter.isEnabled || btAdapter.disable())
+    @Suppress("DEPRECATION")
+    val disabled = btAdapter.disable()
+    promise.resolve(!btAdapter.isEnabled || disabled)
   }
 
   @ReactMethod
@@ -357,6 +364,15 @@ class BluetoothManagerModule(
     reactApplicationContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit(event, params)
+  }
+
+  private fun registerReceiverCompat(context: Context, receiver: BroadcastReceiver, filter: IntentFilter) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    } else {
+      @Suppress("DEPRECATION")
+      context.registerReceiver(receiver, filter)
+    }
   }
 
   override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {

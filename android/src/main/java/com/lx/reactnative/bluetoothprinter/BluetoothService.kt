@@ -3,6 +3,7 @@ package com.lx.reactnative.bluetoothprinter
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.content.Context
 import android.util.Log
 import com.lx.reactnative.bluetoothprinter.BuildConfig
 import java.io.IOException
@@ -11,7 +12,7 @@ import java.io.OutputStream
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 
-class BluetoothService {
+class BluetoothService(private val context: Context) {
   companion object {
     private const val TAG = "BluetoothService"
     private const val NAME = "BTPrinter"
@@ -34,7 +35,7 @@ class BluetoothService {
   }
 
   private val observers = CopyOnWriteArrayList<BluetoothServiceStateObserver>()
-  private val adapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+  private val adapter: BluetoothAdapter? = bluetoothAdapter(context)
   private var connectedThread: ConnectedThread? = null
   @Volatile private var state: Int = STATE_NONE
   @Volatile private var lastConnectedDeviceAddress: String? = null
