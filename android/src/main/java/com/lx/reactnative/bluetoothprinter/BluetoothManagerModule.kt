@@ -51,6 +51,7 @@ class BluetoothManagerModule(
   private val promiseMap = ConcurrentHashMap<String, Promise>()
   private var pairedDevices = Arguments.createArray()
   private var foundDevices = Arguments.createArray()
+  private var isReceiverRegistered = false
 
   private val discoverReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -96,17 +97,12 @@ class BluetoothManagerModule(
   init {
     reactContext.addActivityEventListener(this)
     service.addStateObserver(this)
-
-    val filter = IntentFilter(BluetoothDevice.ACTION_FOUND).apply {
-      addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-    }
-    registerReceiverCompat(reactContext, discoverReceiver, filter)
   }
 
   @Deprecated("React Native bridge cleanup hook")
   override fun onCatalystInstanceDestroy() {
     try {
-      reactApplicationContext.unregisterReceiver(discoverReceiver)
+      unregisterDiscoveryReceiver()
     } catch (_: Exception) {
     }
     service.removeStateObserver(this)
@@ -174,6 +170,7 @@ class BluetoothManagerModule(
       ?: return promise.reject("NO_ACTIVITY", "Current activity is null")
 
     if (!ensureScanPermissions(activity, promise)) return
+    registerDiscoveryReceiver()
 
     cancelDiscovery()
 
@@ -364,6 +361,29 @@ class BluetoothManagerModule(
     reactApplicationContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit(event, params)
+  }
+
+  private fun registerDiscoveryReceiver() {
+    if (isReceiverRegistered) return
+    val filter = IntentFilter(BluetoothDevice.ACTION_FOUND).apply {
+      addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+    }
+    try {
+      registerReceiverCompat(reactApplicationContext, discoverReceiver, filter)
+      isReceiverRegistered = true
+    } catch (e: Exception) {
+      promiseMap.remove(PROMISE_SCAN)?.reject("RECEIVER_ERROR", e)
+    }
+  }
+
+  private fun unregisterDiscoveryReceiver() {
+    if (!isReceiverRegistered) return
+    try {
+      reactApplicationContext.unregisterReceiver(discoverReceiver)
+    } catch (_: Exception) {
+    } finally {
+      isReceiverRegistered = false
+    }
   }
 
   private fun registerReceiverCompat(context: Context, receiver: BroadcastReceiver, filter: IntentFilter) {
