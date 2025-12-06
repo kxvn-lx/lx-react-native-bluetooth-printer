@@ -97,6 +97,7 @@ class BluetoothManagerModule(
   init {
     reactContext.addActivityEventListener(this)
     service.addStateObserver(this)
+    registerDiscoveryReceiver()
   }
 
   @Deprecated("React Native bridge cleanup hook")
@@ -170,7 +171,6 @@ class BluetoothManagerModule(
       ?: return promise.reject("NO_ACTIVITY", "Current activity is null")
 
     if (!ensureScanPermissions(activity, promise)) return
-    registerDiscoveryReceiver()
 
     cancelDiscovery()
 
@@ -368,12 +368,8 @@ class BluetoothManagerModule(
     val filter = IntentFilter(BluetoothDevice.ACTION_FOUND).apply {
       addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
     }
-    try {
-      registerReceiverCompat(reactApplicationContext, discoverReceiver, filter)
-      isReceiverRegistered = true
-    } catch (e: Exception) {
-      promiseMap.remove(PROMISE_SCAN)?.reject("RECEIVER_ERROR", e)
-    }
+    registerReceiverCompat(reactApplicationContext, discoverReceiver, filter)
+    isReceiverRegistered = true
   }
 
   private fun unregisterDiscoveryReceiver() {
