@@ -141,7 +141,8 @@ RCT_EXPORT_METHOD(disableBluetooth:(RCTPromiseResolveBlock)resolve
     resolve(nil);
 }
 //scanDevices
-RCT_EXPORT_METHOD(scanDevices:(RCTPromiseResolveBlock)resolve
+RCT_EXPORT_METHOD(scanDevices:(nullable NSNumber *)durationSeconds
+                  resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
     @try{
@@ -169,11 +170,21 @@ RCT_EXPORT_METHOD(scanDevices:(RCTPromiseResolveBlock)resolve
         //Callbacks:
         //centralManager:didDiscoverPeripheral:advertisementData:RSSI:
         NSLog(@"Scanning started with services.");
+        NSTimeInterval scanDuration = 10;
+        if (durationSeconds != nil) {
+            scanDuration = [durationSeconds doubleValue];
+        }
+        if (scanDuration < 1) {
+            scanDuration = 1;
+        }
+        if (scanDuration > 60) {
+            scanDuration = 60;
+        }
         if(timer && timer.isValid){
             [timer invalidate];
             timer = nil;
         }
-        timer = [NSTimer scheduledTimerWithTimeInterval:10 target:self selector:@selector(callStop) userInfo:nil repeats:NO];
+        timer = [NSTimer scheduledTimerWithTimeInterval:scanDuration target:self selector:@selector(callStop) userInfo:nil repeats:NO];
     
     }
     @catch(NSException *exception){

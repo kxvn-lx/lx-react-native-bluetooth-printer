@@ -9,8 +9,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.os.Bundle;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.util.Log;
@@ -63,6 +66,10 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
     private static final String PROMISE_SCAN = "SCAN";
     private static final String PROMISE_CONNECT = "CONNECT";
 
+    private static final long DEFAULT_SCAN_DURATION_MS = 12000L;
+    private static final long MIN_SCAN_DURATION_MS = 1000L;
+    private static final long MAX_SCAN_DURATION_MS = 60000L;
+
     private JSONArray pairedDeivce = new JSONArray();
     private JSONArray foundDevice = new JSONArray();
     // Name of the connected device
@@ -71,6 +78,11 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the services
     private BluetoothService mService = null;
+    private final Handler scanHandler = new Handler(Looper.getMainLooper());
+    @Nullable
+    private Runnable stopScanRunnable;
+    private long scanDeadlineMs = 0L;
+    private boolean scanCompletionSent = false;
 
     public RNBluetoothManagerModule(ReactApplicationContext reactContext, BluetoothService bluetoothService) {
         super(reactContext);
@@ -164,12 +176,14 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
-    public void scanDevices(final Promise promise) {
+    public void scanDevices(@Nullable Double durationSeconds, final Promise promise) {
         BluetoothAdapter adapter = this.getBluetoothAdapter();
         if(adapter == null){
             promise.reject(EVENT_BLUETOOTH_NOT_SUPPORT);
         }else {
             cancelDisCovery();
+            clearScanTimeout();
+            promiseMap.remove(PROMISE_SCAN);
             int permissionChecked = ContextCompat.checkSelfPermission(reactContext, android.Manifest.permission.ACCESS_FINE_LOCATION);
             if (permissionChecked == PackageManager.PERMISSION_DENIED) { 
                 ActivityCompat.requestPermissions(reactContext.getCurrentActivity(), new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
@@ -203,11 +217,19 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
             WritableMap params = Arguments.createMap();
             params.putString("devices", pairedDeivce.toString());
             emitRNEvent(EVENT_DEVICE_ALREADY_PAIRED, params);
+            long requestedDurationMs = DEFAULT_SCAN_DURATION_MS;
+            if (durationSeconds != null) {
+                requestedDurationMs = (long) (durationSeconds * 1000);
+            }
+            requestedDurationMs = Math.max(MIN_SCAN_DURATION_MS, Math.min(requestedDurationMs, MAX_SCAN_DURATION_MS));
+            scanDeadlineMs = SystemClock.elapsedRealtime() + requestedDurationMs;
+            scanCompletionSent = false;
             if (!adapter.startDiscovery()) {
                 promise.reject("DISCOVER", "NOT_STARTED");
                 cancelDisCovery();
             } else {
                 promiseMap.put(PROMISE_SCAN, promise);
+                scheduleScanStop(requestedDurationMs);
             }
         }
     }
@@ -339,6 +361,56 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
         }
     }
 
+    private void scheduleScanStop(long durationMs) {
+        clearScanTimeout();
+        stopScanRunnable = new Runnable() {
+            @Override
+            public void run() {
+                completeDiscovery();
+            }
+        };
+        scanHandler.postDelayed(stopScanRunnable, durationMs);
+    }
+
+    private void clearScanTimeout() {
+        if (stopScanRunnable != null) {
+            scanHandler.removeCallbacks(stopScanRunnable);
+            stopScanRunnable = null;
+        }
+    }
+
+    private boolean shouldContinueDiscovery() {
+        return scanDeadlineMs > 0 && SystemClock.elapsedRealtime() < scanDeadlineMs;
+    }
+
+    private void completeDiscovery() {
+        if (scanCompletionSent) {
+            return;
+        }
+        scanCompletionSent = true;
+        clearScanTimeout();
+        cancelDisCovery();
+        Promise promise = promiseMap.remove(PROMISE_SCAN);
+        try {
+            JSONObject result = new JSONObject();
+            result.put("paired", pairedDeivce);
+            result.put("found", foundDevice);
+            if (promise != null) {
+                promise.resolve(result.toString());
+            }
+            WritableMap params = Arguments.createMap();
+            params.putString("paired", pairedDeivce.toString());
+            params.putString("found", foundDevice.toString());
+            emitRNEvent(EVENT_DEVICE_DISCOVER_DONE, params);
+        } catch (Exception e) {
+            if (promise != null) {
+                promise.reject("DISCOVER_RESULT_ERROR", e.getMessage());
+            }
+        } finally {
+            scanDeadlineMs = 0L;
+        }
+    }
+
 
     @Override
     public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
@@ -454,23 +526,14 @@ public class RNBluetoothManagerModule extends ReactContextBaseJavaModule
 
                 }
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-                Promise promise = promiseMap.remove(PROMISE_SCAN);
-                if (promise != null) {
-
-                    JSONObject result = null;
-                    try {
-                        result = new JSONObject();
-                        result.put("paired", pairedDeivce);
-                        result.put("found", foundDevice);
-                        promise.resolve(result.toString());
-                    } catch (Exception e) {
-                        //ignore
+                BluetoothAdapter adapter = getBluetoothAdapter();
+                if (shouldContinueDiscovery() && adapter != null) {
+                    boolean restarted = adapter.startDiscovery();
+                    if (restarted) {
+                        return;
                     }
-                    WritableMap params = Arguments.createMap();
-                    params.putString("paired", pairedDeivce.toString());
-                    params.putString("found", foundDevice.toString());
-                    emitRNEvent(EVENT_DEVICE_DISCOVER_DONE, params);
                 }
+                completeDiscovery();
             }
         }
     };

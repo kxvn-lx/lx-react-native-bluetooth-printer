@@ -192,7 +192,9 @@ declare module "lx-react-native-bluetooth-printer" {
       | PromiseLike<BluetoothDevice[]>;
     static disableBluetooth(): boolean | PromiseLike<boolean>;
     static isBluetoothEnabled(): boolean | PromiseLike<boolean>;
-    static scanDevices():
+    static scanDevices(
+      durationSeconds?: number
+    ):
       | ScannedBluetoothDevices
       | PromiseLike<ScannedBluetoothDevices>;
     static stopScan(): void | PromiseLike<void>;
