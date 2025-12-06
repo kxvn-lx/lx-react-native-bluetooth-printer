@@ -62,7 +62,7 @@ final class BluetoothManager: RCTEventEmitter, BluetoothSessionDelegate {
 
   @objc
   func isBluetoothEnabled(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-    resolve(session.central.state == .poweredOn)
+    resolve(session.central.state == .poweredOn ? "true" : "false")
   }
 
   @objc
@@ -78,13 +78,20 @@ final class BluetoothManager: RCTEventEmitter, BluetoothSessionDelegate {
   @objc
   func scanDevices(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     guard session.central.state == .poweredOn else {
-      reject("BLUETOOTH_INVALID_STATE", "Bluetooth is off", nil)
+      reject("BLUETOOTCH_INVALID_STATE", "BLUETOOTCH_INVALID_STATE", nil)
       return
+    }
+    if session.isScanning {
+      session.stopScan()
     }
     scanResolve = resolve
     scanReject = reject
     session.startScan(timeout: 10)
-    // EVENT_DEVICE_ALREADY_PAIRED is empty on iOS; emit immediately.
+    if let connectedInfo = session.rememberConnected() {
+      if hasListenersFlag {
+        sendEvent(withName: "EVENT_DEVICE_FOUND", body: ["device": connectedInfo])
+      }
+    }
     if hasListenersFlag {
       sendEvent(withName: "EVENT_DEVICE_ALREADY_PAIRED", body: ["devices": "[]"])
     }
@@ -147,12 +154,12 @@ final class BluetoothManager: RCTEventEmitter, BluetoothSessionDelegate {
 
   func sessionDidFinishDiscovery(found: [CBPeripheral]) {
     let devices = found.map { ["address": $0.identifier.uuidString, "name": $0.name ?? ""] }
+    let jsonData = try? JSONSerialization.data(withJSONObject: devices, options: [])
+    let jsonStr = String(data: jsonData ?? Data(), encoding: .utf8) ?? "[]"
     if hasListenersFlag {
-      let jsonData = try? JSONSerialization.data(withJSONObject: devices, options: [])
-      let jsonStr = String(data: jsonData ?? Data(), encoding: .utf8) ?? "[]"
       sendEvent(withName: "EVENT_DEVICE_DISCOVER_DONE", body: ["found": jsonStr, "paired": "[]"])
     }
-    scanResolve?(["found": devices, "paired": []])
+    scanResolve?(["found": jsonStr, "paired": "[]"])
     scanResolve = nil
     scanReject = nil
   }

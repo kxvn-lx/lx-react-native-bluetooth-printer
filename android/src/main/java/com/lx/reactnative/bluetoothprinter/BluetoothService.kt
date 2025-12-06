@@ -38,7 +38,7 @@ class BluetoothService(private val context: Context) {
   private val adapter: BluetoothAdapter? = bluetoothAdapter(context)
   private var connectedThread: ConnectedThread? = null
   @Volatile private var state: Int = STATE_NONE
-  @Volatile private var lastConnectedDeviceAddress: String? = null
+  @Volatile private var lastConnectedDeviceAddress: String = ""
 
   fun addStateObserver(observer: BluetoothServiceStateObserver) {
     observers.addIfAbsent(observer)
@@ -213,7 +213,7 @@ class BluetoothService(private val context: Context) {
       } catch (e: IOException) {
         Log.e(TAG, "close failed", e)
       }
-      // Don't call connectionLost() here as it's already handled by readLoop
+      connectionLost()
     }
   }
 }

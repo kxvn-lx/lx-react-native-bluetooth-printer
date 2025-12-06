@@ -76,6 +76,19 @@ final class BluetoothSession: NSObject, CBCentralManagerDelegate, CBPeripheralDe
     return foundDevices[uuid]
   }
 
+  func rememberConnected() -> [String: String]? {
+    guard let device = connected else { return nil }
+    foundDevices[device.identifier] = device
+    return [
+      "address": device.identifier.uuidString,
+      "name": device.name ?? "",
+    ]
+  }
+
+  func foundDevicesSnapshot() -> [CBPeripheral] {
+    Array(foundDevices.values)
+  }
+
   func write(_ data: Data, completion: @escaping (Bool) -> Void) {
     guard let peripheral = connected else {
       completion(false)

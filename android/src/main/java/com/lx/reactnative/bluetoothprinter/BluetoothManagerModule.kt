@@ -20,6 +20,8 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import org.json.JSONArray
+import org.json.JSONObject
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
@@ -49,8 +51,8 @@ class BluetoothManagerModule(
 
   private val adapter: BluetoothAdapter? = bluetoothAdapter(reactContext)
   private val promiseMap = ConcurrentHashMap<String, Promise>()
-  private var pairedDevices = Arguments.createArray()
-  private var foundDevices = Arguments.createArray()
+  private var pairedDevicesJson = JSONArray()
+  private var foundDevicesJson = JSONArray()
   private var isReceiverRegistered = false
 
   private val discoverReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -64,13 +66,14 @@ class BluetoothManagerModule(
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
           }
           if (device != null && device.bondState != BluetoothDevice.BOND_BONDED) {
-            if (!deviceAlreadyFound(device.address)) {
-              val map = Arguments.createMap()
-              map.putString("name", safeDeviceName(device))
-              map.putString("address", device.address)
-              foundDevices.pushMap(map)
+            val deviceJson = JSONObject().apply {
+              put("name", safeDeviceName(device))
+              put("address", device.address)
+            }
+            if (!deviceAlreadyFound(deviceJson)) {
+              foundDevicesJson.put(deviceJson)
               Arguments.createMap().apply {
-                putMap("device", map)
+                putString("device", deviceJson.toString())
                 emitEvent(EVENT_DEVICE_FOUND, this)
               }
             }
@@ -79,14 +82,15 @@ class BluetoothManagerModule(
 
         BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
           promiseMap.remove(PROMISE_SCAN)?.let { promise ->
-            val result = Arguments.createMap()
-            result.putArray("paired", pairedDevices)
-            result.putArray("found", foundDevices)
-            promise.resolve(result)
+            val result = JSONObject().apply {
+              put("paired", pairedDevicesJson)
+              put("found", foundDevicesJson)
+            }
+            promise.resolve(result.toString())
           }
           val params = Arguments.createMap().apply {
-            putArray("paired", pairedDevices)
-            putArray("found", foundDevices)
+            putString("paired", pairedDevicesJson.toString())
+            putString("found", foundDevicesJson.toString())
           }
           emitEvent(EVENT_DEVICE_DISCOVER_DONE, params)
         }
@@ -126,7 +130,8 @@ class BluetoothManagerModule(
 
   private fun ensureAdapterOrReject(promise: Promise): BluetoothAdapter? {
     if (adapter == null) {
-      promise.reject(EVENT_BLUETOOTH_NOT_SUPPORT, "Bluetooth not supported")
+      emitEvent(EVENT_BLUETOOTH_NOT_SUPPORT, null)
+      promise.reject(EVENT_BLUETOOTH_NOT_SUPPORT)
       return null
     }
     return adapter
@@ -144,7 +149,7 @@ class BluetoothManagerModule(
       return
     }
 
-    promise.resolve(buildPairedArray(btAdapter))
+    promise.resolve(buildPairedArrayJson(btAdapter))
   }
 
   @ReactMethod
@@ -170,21 +175,22 @@ class BluetoothManagerModule(
     val activity = reactApplicationContext.currentActivity
       ?: return promise.reject("NO_ACTIVITY", "Current activity is null")
 
-    if (!ensureScanPermissions(activity, promise)) return
+    ensureScanPermissions(activity)
 
     cancelDiscovery()
 
-    pairedDevices = Arguments.createArray()
-    foundDevices = Arguments.createArray()
+    pairedDevicesJson = JSONArray()
+    foundDevicesJson = JSONArray()
     btAdapter.bondedDevices.forEach { device ->
-      val map = Arguments.createMap()
-      map.putString("name", safeDeviceName(device))
-      map.putString("address", device.address)
-      pairedDevices.pushMap(map)
+      val deviceJson = JSONObject().apply {
+        put("name", safeDeviceName(device))
+        put("address", device.address)
+      }
+      pairedDevicesJson.put(deviceJson)
     }
 
     Arguments.createMap().apply {
-      putArray("devices", pairedDevices)
+      putString("devices", pairedDevicesJson.toString())
       emitEvent(EVENT_DEVICE_ALREADY_PAIRED, this)
     }
 
@@ -200,7 +206,7 @@ class BluetoothManagerModule(
   fun connect(address: String, promise: Promise) {
     val btAdapter = ensureAdapterOrReject(promise) ?: return
     if (!btAdapter.isEnabled) {
-      promise.reject("BT_NOT_ENABLED", "Bluetooth is not enabled")
+      promise.reject("BT NOT ENABLED")
       return
     }
     val device = btAdapter.getRemoteDevice(address)
@@ -226,7 +232,7 @@ class BluetoothManagerModule(
   fun unpair(address: String, promise: Promise) {
     val btAdapter = ensureAdapterOrReject(promise) ?: return
     if (!btAdapter.isEnabled) {
-      promise.reject("BT_NOT_ENABLED", "Bluetooth is not enabled")
+      promise.reject("BT NOT ENABLED")
       return
     }
     try {
@@ -242,7 +248,7 @@ class BluetoothManagerModule(
   fun disconnect(address: String, promise: Promise) {
     val btAdapter = ensureAdapterOrReject(promise) ?: return
     if (!btAdapter.isEnabled) {
-      promise.reject("BT_NOT_ENABLED", "Bluetooth is not enabled")
+      promise.reject("BT NOT ENABLED")
       return
     }
     try {
@@ -277,17 +283,18 @@ class BluetoothManagerModule(
     }
   }
 
-  private fun buildPairedArray(btAdapter: BluetoothAdapter) =
+  private fun buildPairedArrayJson(btAdapter: BluetoothAdapter) =
     Arguments.createArray().apply {
       btAdapter.bondedDevices.forEach { device ->
-        val map = Arguments.createMap()
-        map.putString("name", safeDeviceName(device))
-        map.putString("address", device.address)
-        pushMap(map)
+        val deviceJson = JSONObject().apply {
+          put("name", safeDeviceName(device))
+          put("address", device.address)
+        }
+        pushString(deviceJson.toString())
       }
     }
 
-  private fun ensureScanPermissions(activity: Activity, promise: Promise): Boolean {
+  private fun ensureScanPermissions(activity: Activity) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       val missing = mutableListOf<String>()
       val connectGranted = ContextCompat.checkSelfPermission(
@@ -302,8 +309,6 @@ class BluetoothManagerModule(
       if (!scanGranted) missing.add(android.Manifest.permission.BLUETOOTH_SCAN)
       if (missing.isNotEmpty()) {
         ActivityCompat.requestPermissions(activity, missing.toTypedArray(), 1)
-        promise.reject("PERMISSION_REQUESTED", "Bluetooth permissions requested")
-        return false
       }
     } else {
       val locationGranted = ContextCompat.checkSelfPermission(
@@ -316,11 +321,8 @@ class BluetoothManagerModule(
           arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
           1,
         )
-        promise.reject("PERMISSION_REQUESTED", "Location permission requested")
-        return false
       }
     }
-    return true
   }
 
   private fun unpairDevice(device: BluetoothDevice) {
@@ -341,10 +343,11 @@ class BluetoothManagerModule(
     }
   }
 
-  private fun deviceAlreadyFound(address: String): Boolean {
-    for (i in 0 until foundDevices.size()) {
-      val existing = foundDevices.getMap(i)
-      if (existing?.getString("address") == address) return true
+  private fun deviceAlreadyFound(deviceJson: JSONObject): Boolean {
+    val address = deviceJson.optString("address")
+    for (i in 0 until foundDevicesJson.length()) {
+      val existing = foundDevicesJson.optJSONObject(i)
+      if (existing?.optString("address") == address) return true
     }
     return false
   }
@@ -396,7 +399,7 @@ class BluetoothManagerModule(
       val promise = promiseMap.remove(PROMISE_ENABLE_BT)
       if (resultCode == Activity.RESULT_OK && promise != null) {
         val btAdapter = adapter
-        promise.resolve(btAdapter?.let { buildPairedArray(it) })
+        promise.resolve(btAdapter?.let { buildPairedArrayJson(it) })
       } else {
         promise?.reject("ERR", "BT NOT ENABLED")
       }
@@ -419,7 +422,7 @@ class BluetoothManagerModule(
       BluetoothService.MESSAGE_CONNECTION_LOST -> emitEvent(EVENT_CONNECTION_LOST, null)
 
       BluetoothService.MESSAGE_UNABLE_CONNECT -> {
-        promiseMap.remove(PROMISE_CONNECT)?.reject("UNABLE_CONNECT", "Unable to connect")
+        promiseMap.remove(PROMISE_CONNECT)?.reject("Unable to connect device")
           ?: emitEvent(EVENT_UNABLE_CONNECT, null)
       }
     }

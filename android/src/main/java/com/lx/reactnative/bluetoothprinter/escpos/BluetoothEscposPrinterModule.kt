@@ -55,7 +55,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_PrtInit())) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -64,7 +64,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_PrtAndFeedPaper(feed))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -73,7 +73,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_LeftSP(sp))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -81,7 +81,7 @@ class BluetoothEscposPrinterModule(
   fun printerLineSpace(sp: Int, promise: Promise) {
     val command = if (sp > 0) PrinterCommand.POS_Set_LineSpace(sp) else PrinterCommand.POS_Set_DefLineSpace()
     if (command == null || !sendDataByte(command)) {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     } else {
       promise.resolve(null)
     }
@@ -92,7 +92,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_UnderLine(line))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -101,7 +101,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_S_Align(align))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -125,7 +125,7 @@ class BluetoothEscposPrinterModule(
       if (sendDataByte(bytes)) {
         promise.resolve(null)
       } else {
-        promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+        promise.reject("COMMAND_NOT_SEND")
       }
     } catch (e: Exception) {
       promise.reject("PRINT_TEXT_ERROR", e.message ?: "Unknown error", e)
@@ -141,13 +141,13 @@ class BluetoothEscposPrinterModule(
     promise: Promise,
   ) {
     if (columnWidths.size() != columnTexts.size() || columnWidths.size() != columnAligns.size()) {
-      promise.reject("COLUMN_WIDTHS_ALIGNS_AND_TEXTS_NOT_MATCH", "Lebar kolom tidak sesuai dengan teks")
+      promise.reject("COLUMN_WIDTHS_ALIGNS_AND_TEXTS_NOT_MATCH")
       return
     }
     val totalLen = (0 until columnWidths.size()).sumOf { columnWidths.getInt(it) }
     val maxLen = deviceWidth / 8
     if (totalLen > maxLen) {
-      promise.reject("COLUNM_WIDTHS_TOO_LARGE", "Total lebar kolom melebihi batas perangkat")
+      promise.reject("COLUNM_WIDTHS_TOO_LARGE")
       return
     }
 
@@ -239,7 +239,7 @@ class BluetoothEscposPrinterModule(
             ),
           )
         ) {
-          promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+          promise.reject("COMMAND_NOT_SEND")
           return
         }
       } catch (e: Exception) {
@@ -279,7 +279,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_Cut(line))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -294,7 +294,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_Rotate(rotate))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -303,7 +303,7 @@ class BluetoothEscposPrinterModule(
     if (sendDataByte(PrinterCommand.POS_Set_Bold(weight))) {
       promise.resolve(null)
     } else {
-      promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+      promise.reject("COMMAND_NOT_SEND")
     }
   }
 
@@ -329,7 +329,7 @@ class BluetoothEscposPrinterModule(
       if (sendDataByte(data)) {
         promise.resolve(null)
       } else {
-        promise.reject("COMMAND_NOT_SEND", "Perintah tidak dapat dikirim")
+        promise.reject("COMMAND_NOT_SEND")
       }
     } catch (e: Exception) {
       promise.reject("PRINT_QR_ERROR", e.message ?: "Unknown error", e)
