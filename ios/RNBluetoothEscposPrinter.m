@@ -270,7 +270,7 @@ RCT_EXPORT_METHOD(rotate:(NSInteger *)rotate
 //        }
 }
 
-RCT_EXPORT_METHOD(printerAlign:(NSInteger *) align
+RCT_EXPORT_METHOD(printerAlign:(NSInteger) align
                    withResolver:(RCTPromiseResolveBlock) resolve rejecter:(RCTPromiseRejectBlock) reject)
 {
     if(RNBluetoothManager.isConnected){
@@ -280,9 +280,10 @@ RCT_EXPORT_METHOD(printerAlign:(NSInteger *) align
         }else{
             //{ESC, 'a', 0x00 }
             NSMutableData *toSend = [[NSMutableData alloc] init];
+            Byte alignByte[] = {(Byte)align};
             [toSend appendBytes:ESC length:sizeof(ESC)];
             [toSend appendBytes:A length:sizeof(A)];
-            [toSend appendBytes:&align length:sizeof(align)];
+            [toSend appendBytes:alignByte length:sizeof(alignByte)];
             pendingReject =reject;
             pendingResolve =resolve;
             [RNBluetoothManager writeValue:toSend withDelegate:self];
